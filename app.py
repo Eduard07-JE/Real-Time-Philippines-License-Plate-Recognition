@@ -12,15 +12,16 @@ vehicle_folder_path = "./vehicles/"
 LICENSE_MODEL_DETECTION_DIR = './models/best.pt'
 COCO_MODEL_DIR = "./models/yolov8s.pt"
 
-reader = easyocr.Reader(['en'], gpu=True)
+reader = easyocr.Reader(
+    ['en'],
+    gpu=False,
+    model_storage_directory='A:/EasyOCR_models'
+)
 vehicles = {2: "Car", 3: "MC", 5: "Bus", 6: "Truck"}
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-coco_model = YOLO(COCO_MODEL_DIR)
-license_plate_detector = YOLO(LICENSE_MODEL_DETECTION_DIR)
-coco_model = YOLO(COCO_MODEL_DIR).to(torch.device(0))
-license_plate_detector = YOLO(LICENSE_MODEL_DETECTION_DIR).to(torch.device(0))
-
+coco_model = YOLO(COCO_MODEL_DIR).to(device)
+license_plate_detector = YOLO(LICENSE_MODEL_DETECTION_DIR).to(device)
 threshold = 0.15
 
 class VideoProcessor:
@@ -84,18 +85,19 @@ def model_prediction(img, frame_number):
 
         if vehicle_detected:
             license_detections = license_plate_detector.track(img, persist=True)[0]
+            print("PLATE DETECTIONS:", len(license_detections.boxes.cls.tolist()))
             
             if len(license_detections.boxes.cls.tolist()) != 0:
                 license_plate_crops_total = []
                 for license_plate in license_detections.boxes.data.tolist():
                     if len(license_plate) == 7:
-                        print(license_plate)
+                        print("Plate detections:", license_plate)
                         x1, y1, x2, y2, lp_track_id, lp_score, class_name = license_plate
 
                         for veh_bbox in vehicle_bboxes:
                             track_id, xvehicle1, yvehicle1, xvehicle2, yvehicle2, vehicle_score, veh_class_name = veh_bbox
                             # Check if this license plate is inside any vehicle bounding box
-                            if x1 > xvehicle1 and x2 < xvehicle2 and y1 > yvehicle1 and y2 < yvehicle2:
+                            if (x1 < xvehicle2 and x2 > xvehicle1 and y1 < yvehicle2 and y2 > yvehicle1):
                                 # This license plate is inside this vehicle bounding box
                                 cv2.rectangle(img, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 3)
 
@@ -113,25 +115,27 @@ def model_prediction(img, frame_number):
                                 # img_ff = cv2.bitwise_not(img_ff)
                                 # cv2.imshow('Cropped License Plate', img_ff)  
                                 license_plate_text, license_plate_text_score = read_license_plate(license_plate_crop_gray, img)
-                                print(license_plate_text)
-                                licenses_texts.append(license_plate_text)
+                                if license_plate_text is not None:
+                                    print(f"Detected Plate: {license_plate_text}")
+                                    licenses_texts.append(license_plate_text)
+                                
                                 
 
                                 if license_plate_text is not None and license_plate_text_score is not None:
                                     lp_length = len(license_plate_text)
                                     
                                     if lp_length <= 5:
-                                        break
+                                        continue
                                     
                                     elif lp_length >= 8:
-                                        break
+                                        continue
                                     # set the treshold for this 
                                     if license_plate_text_score >= 0.7:
                                         license_plate_text = re.sub(r'[^A-Za-z0-9]', '', license_plate_text)
                                         
                                         #formatting
                                         if lp_length >= 6 and lp_length <= 7:
-                                            if class_name in ["Car", "Bus", "Truck"]:
+                                            if veh_class_name in ["Car", "Bus", "Truck"]:
                                                 l = license_plate_text[:3]
                                                 n = license_plate_text[3:lp_length]
                                                 # Check if 'l' contains a number
@@ -142,7 +146,7 @@ def model_prediction(img, frame_number):
                                                     n = char2int(n)
                                                 license_plate_text = (l + "-" + n)
                                             
-                                            elif class_name == "MC" and lp_length == 6:
+                                            elif veh_class_name == "MC" and lp_length == 6:
                                                 n = license_plate_text[:3]
                                                 l = license_plate_text[3:6]
                                                 # Check if 'n' contains a number
@@ -201,7 +205,7 @@ def model_prediction(img, frame_number):
 
 
 def main():
-    cap = cv2.VideoCapture(2)
+    cap = cv2.VideoCapture(0)
     processor = VideoProcessor()
     frame_number = 0
             
@@ -214,6 +218,10 @@ def main():
 
         if not ret:
             break
+
+        # TEMP OCR TEST (add this)
+        test = read_license_plate(frame, frame)
+        print("OCR TEST:", test)
         # Increment frame number
         frame_number += 1
 
@@ -235,5 +243,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-app.py
-Ipinapakita ang app.py.
+

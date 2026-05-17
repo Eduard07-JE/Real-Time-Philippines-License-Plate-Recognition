@@ -12,6 +12,4 @@ if torch.cuda.is_available():
         print(f"CUDA Device {i}: {device}")
 else:
     print("CUDA is not available on this system.")
-    
-cuda.py
-Ipinapakita ang cuda.py.
+

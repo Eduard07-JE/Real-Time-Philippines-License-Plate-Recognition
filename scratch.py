@@ -18,7 +18,7 @@ THRESHOLD = 0.15
 VEHICLES = {2: "Car", 3: "MC", 5: "Bus", 6: "Truck"}
 
 # Initialize models and devices
-reader = easyocr.Reader(['en'], gpu=True)
+reader = easyocr.Reader(['en'], gpu=False)
 coco_model = YOLO(COCO_MODEL_DIR).to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
 license_plate_detector = YOLO(LICENSE_MODEL_DETECTION_DIR).to(torch.device("cuda" if torch.cuda.is_available() else "cpu"))
 results_buffer = []

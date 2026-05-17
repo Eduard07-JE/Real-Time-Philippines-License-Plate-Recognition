@@ -12,7 +12,7 @@ vehicle_folder_path = "./vehicles/"
 model = YOLO("./models/yolov8n.pt")
 license_plate_detector = YOLO('./models/license_plate_detector.pt')
 vehicles = {2: "Car", 3: "Motorcycle", 5: "Bus", 6: "Truck"}
-reader = easyocr.Reader(['en'], gpu=True)
+reader = easyocr.Reader(['en'], gpu=False)
 
 
 def read_license_plate(license_plate_crop, img):
@@ -186,7 +186,7 @@ def model_predection(frame):
                                     write_csv(results, f"./results/detection_results.csv")
     return frame
 
-cap = cv2.VideoCapture(2)
+cap = cv2.VideoCapture(0)
 
 # Set the desired width and height for the resized frames
 width = 640
